@@ -23,7 +23,7 @@ namespace {
 
 SettingsPopup* SettingsPopup::create() {
     auto ret = new SettingsPopup();
-    if (ret && ret->initAnchored(370.f, 340.f)) {
+    if (ret && ret->init()) {
         ret->autorelease();
         return ret;
     }
@@ -49,12 +49,13 @@ SettingsPopup::~SettingsPopup() {
 
 void SettingsPopup::onClose(CCObject* sender) {
     if (s_current == this) s_current = nullptr;
-    Popup<>::onClose(sender);
+    Popup::onClose(sender);
 }
 
-bool SettingsPopup::setup() {
+bool SettingsPopup::init() {
+    if (!Popup::init(370.f, 340.f)) return false;
     setTitle("Input Buffer");
-    auto size = m_size;
+    CCSize size{370.f, 340.f};
     float cx = size.width / 2;
     float y = size.height;
 
