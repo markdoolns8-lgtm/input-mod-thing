@@ -1,14 +1,14 @@
 #pragma once
 #include <Geode/Geode.hpp>
 
-class SettingsPopup : public geode::Popup<> {
+class SettingsPopup : public geode::Popup {
 public:
     static void open();            // no-op if the menu is already open
     static void refreshIfOpen();   // keeps the menu in sync with F6/F7 and setters
     ~SettingsPopup() override;
 
 protected:
-    bool setup() override;
+    bool init();   // Geode v5: Popup is not templated; init() replaces setup()
     void onClose(cocos2d::CCObject* sender) override;
 
 private:
