@@ -1,12 +1,12 @@
 {
 	"geode": "4.6.0",
 	"gd": {
-		"win": "2.2074"
+		"win": "2.2081"
 	},
 	"id": "markdoolns8.input-buffer",
 	"name": "Input Buffer",
 	"version": "v1.0.0",
 	"developer": "markdoolns8",
 	"description": "Configurable early-press buffering and early-release hold protection. F6 = ON, F7 = OFF, F8 = settings.",
-	"repository": "https://github.com/markdoolns8-lgtm/mark"
+	"repository": "https://github.com/markdoolns8-lgtm/input-mod-thing"
 }
