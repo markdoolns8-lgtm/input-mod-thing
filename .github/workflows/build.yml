@@ -30,16 +30,28 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: _repo
+
       # The mod lives in a sub-folder of the repo; copy it to the workspace root
       # because the Geode build action builds from the root.
       - name: Use project folder as workspace root
         shell: pwsh
         run: Copy-Item -Path "_repo/${{ env.PROJECT_DIR }}/*" -Destination . -Recurse -Force
 
+      - name: Find latest Geode SDK release
+        id: sdk
+        shell: pwsh
+        run: |
+          $tag = (Invoke-RestMethod https://api.github.com/repos/geode-sdk/geode/releases/latest).tag_name
+          Write-Host "Latest Geode SDK: $tag"
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          $mj = Get-Content mod.json -Raw | ConvertFrom-Json
+          $mj.geode = $tag.TrimStart('v')
+          $mj | ConvertTo-Json -Depth 10 | Set-Content mod.json
+
       - name: Build with Geode
         uses: geode-sdk/build-geode-mod@main
         with:
-          sdk: v4.6.0
+          sdk: ${{ steps.sdk.outputs.tag }}
           combine: false
 
       - name: Verify the .geode package
