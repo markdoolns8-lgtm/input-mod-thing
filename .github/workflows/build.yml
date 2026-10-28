@@ -1,0 +1,70 @@
+name: Build Input Buffer mod
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PROJECT_DIR: input-delay-geode
+
+jobs:
+  tests:
+    name: Unit tests (buffer logic)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile and run tests
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror ${{ env.PROJECT_DIR }}/tests/test_buffer.cpp -o test_buffer
+          ./test_buffer
+
+  build:
+    name: Build .geode (Windows)
+    needs: tests
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: _repo
+      # The mod lives in a sub-folder of the repo; copy it to the workspace root
+      # because the Geode build action builds from the root.
+      - name: Use project folder as workspace root
+        shell: pwsh
+        run: Copy-Item -Path "_repo/${{ env.PROJECT_DIR }}/*" -Destination . -Recurse -Force
+
+      - name: Build with Geode
+        uses: geode-sdk/build-geode-mod@main
+        with:
+          sdk: v4.6.0
+          combine: false
+
+      - name: Verify the .geode package
+        shell: pwsh
+        run: |
+          $f = Get-ChildItem -Path build -Recurse -Filter *.geode | Select-Object -First 1
+          if (-not $f) { throw "No .geode file was produced" }
+          if ($f.Length -lt 10000) { throw "Package is suspiciously small ($($f.Length) bytes)" }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $z = [IO.Compression.ZipFile]::OpenRead($f.FullName)
+          $names = @($z.Entries | ForEach-Object { $_.FullName })
+          $modEntry = $z.Entries | Where-Object { $_.FullName -eq 'mod.json' }
+          if (-not $modEntry) { throw "mod.json missing from package" }
+          $json = (New-Object IO.StreamReader($modEntry.Open())).ReadToEnd() | ConvertFrom-Json
+          $z.Dispose()
+          if ($json.id -ne 'markdoolns8.input-buffer') { throw "Unexpected mod id: $($json.id)" }
+          if (-not ($names | Where-Object { $_ -like '*.dll' })) { throw "No compiled .dll inside package" }
+          Write-Host "OK: $($f.Name) $($f.Length) bytes, entries: $($names -join ', ')"
+          New-Item -ItemType Directory -Force -Path out | Out-Null
+          Copy-Item $f.FullName out/
+          "${{ github.sha }}" | Out-File out/source-revision.txt
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: input-buffer-${{ github.sha }}
+          path: out/
+          if-no-files-found: error
